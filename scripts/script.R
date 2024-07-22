@@ -339,3 +339,198 @@ source("Procesamiento/tabla_balance.r")
   
    view(bd_long_plus%>%select(NIM...4,year,starts_with("impact_ano_"),`301. Menos 3 al Menos 1/b. Patentes`,`301. Mas 3 al Mas 1/b. Patentes`,p301a,p301b)%>%filter(NIM...4=="ee.kobotoolbox.org:O396WnvLThVwcUj7"))
   
+   
+   # Seccion   5 =================================================================
+   
+   bd_long_plus <- bd_long_plus %>% mutate( p501_a = `501. ¿Cuáles de los siguientes factores contribuyen diferenciadamente a que usted prefiera desarrollar investigación desde la ciudad en donde está basado o estuvo basado para su proyecto de referencia?**/a. Calidad de las instituciones educativas en esta ciudad.`,
+                                            p501_b = `501. ¿Cuáles de los siguientes factores contribuyen diferenciadamente a que usted prefiera desarrollar investigación desde la ciudad en donde está basado o estuvo basado para su proyecto de referencia?**/b. Apoyo económico de las empresas y capital privado en esta ciudad`,
+                                            p501_c = `501. ¿Cuáles de los siguientes factores contribuyen diferenciadamente a que usted prefiera desarrollar investigación desde la ciudad en donde está basado o estuvo basado para su proyecto de referencia?**/c. Mayor apoyo económico y político de las autoridades locales`,
+                                            p501_d = `501. ¿Cuáles de los siguientes factores contribuyen diferenciadamente a que usted prefiera desarrollar investigación desde la ciudad en donde está basado o estuvo basado para su proyecto de referencia?**/d. Mejor salario para los investigadores`,
+                                            p501_e = `501. ¿Cuáles de los siguientes factores contribuyen diferenciadamente a que usted prefiera desarrollar investigación desde la ciudad en donde está basado o estuvo basado para su proyecto de referencia?**/e. Amplia oferta de profesionales investigadores`,
+                                            p501_f = `501. ¿Cuáles de los siguientes factores contribuyen diferenciadamente a que usted prefiera desarrollar investigación desde la ciudad en donde está basado o estuvo basado para su proyecto de referencia?**/f. Disponibilidad de centros de excelencia en salud`,
+                                            p501_g = `501. ¿Cuáles de los siguientes factores contribuyen diferenciadamente a que usted prefiera desarrollar investigación desde la ciudad en donde está basado o estuvo basado para su proyecto de referencia?**/g. Incentivo económico por parte del empleador para innovar`,
+                                            p501_h = `501. ¿Cuáles de los siguientes factores contribuyen diferenciadamente a que usted prefiera desarrollar investigación desde la ciudad en donde está basado o estuvo basado para su proyecto de referencia?**/h. Más especialistas, menor carga de trabajo per cápita y más tiempo para investigar`,
+                                            p501_i = `501. ¿Cuáles de los siguientes factores contribuyen diferenciadamente a que usted prefiera desarrollar investigación desde la ciudad en donde está basado o estuvo basado para su proyecto de referencia?**/i. Es su lugar de nacimiento / Razones familiares`
+   )
+   
+   
+   
+   bd_long_plus <- bd_long_plus %>% mutate( p502_ciudad = case_when( ano_menos_1==year ~ `502. Menos 3 al Menos 1`,
+                                                                     ano_mas_1==year ~ `502. Mas 3 al Mas 1`,
+                                                                     TRUE ~ "") )
+   
+   bd_long_plus <- bd_long_plus %>% mutate( p503_depto = case_when( ano_menos_1==year ~ `503. Menos 3 al Menos 1`,
+                                                                    ano_mas_1==year ~ `503. Mas 3 al Mas 1`,
+                                                                    TRUE ~ "") )
+   
+   
+   # Para probarlo
+   #xx=bd_long_plus %>% select(NIM...4,status,year,ano_menos_1,ano_mas_1,p215, `502. Menos 3 al Menos 1`, `502. Mas 3 al Mas 1`,p502_ciudad  )
+   
+   bd_long_plus <- bd_long_plus %>% mutate( p504_investOtrasCiudades = case_when( ano_menos_1==year ~ `504. Menos 3 al Menos 1`,
+                                                                                  ano_mas_1==year ~ `504. Mas 3 al Mas 1`,
+                                                                                  TRUE ~ "") )  
+   
+   bd_long_plus <- bd_long_plus %>% mutate( p504_investOtrasCiudadesCual = case_when( ano_menos_1==year ~ `504. Menos 3 al Menos 1_Cuál...489`,
+                                                                                      ano_mas_1==year ~ `504. Mas 3 al Mas 1_Cuál...492`,
+                                                                                      TRUE ~ "") )     
+   
+   
+   bd_long_plus <- bd_long_plus %>% mutate( p505_datosOtrasCiudades = case_when( ano_menos_1==year ~ `505. Menos 3 al Menos 1`,
+                                                                                 ano_mas_1==year ~ `505. Mas 3 al Mas 1`,
+                                                                                 TRUE ~ "") )  
+   
+   bd_long_plus <- bd_long_plus %>% mutate( p505_datosOtrasCiudadesCual = case_when( ano_menos_1==year ~ `505. Menos 3 al Menos 1_Cuál...496`,
+                                                                                     ano_mas_1==year ~ `505. Mas 3 al Mas 1_Cuál...499`,
+                                                                                     TRUE ~ "") )     
+   
+   # Poblacion especifica
+   
+   bd_long_plus <- bd_long_plus %>% mutate( p506_gruposBenef_a = case_when( ano_menos_1==year ~ `506. Menos 3 al Menos 1/a. Comunidades rurales`,
+                                                                            ano_mas_1==year ~ `506. Mas 3 al Mas 1/a. Comunidades rurales`,
+                                                                            TRUE ~ NA) )     
+   
+   bd_long_plus <- bd_long_plus %>% mutate( p506_gruposBenef_b = case_when( ano_menos_1==year ~ `506. Mas 3 al Mas 1/b. Mujeres`,
+                                                                            ano_mas_1==year ~ `506. Mas 3 al Mas 1/b. Mujeres`,
+                                                                            TRUE ~ NA) )     
+   
+   bd_long_plus <- bd_long_plus %>% mutate( p506_gruposBenef_c = case_when( ano_menos_1==year ~ `506. Menos 3 al Menos 1/c. Comunidades indígenas`,
+                                                                            ano_mas_1==year ~ `506. Mas 3 al Mas 1/c. Comunidades indígenas`,
+                                                                            TRUE ~ NA) )     
+   
+   bd_long_plus <- bd_long_plus %>% mutate( p506_gruposBenef_d = case_when( ano_menos_1==year ~ `506. Menos 3 al Menos 1/d. Comunidades afrodescendientes`,
+                                                                            ano_mas_1==year ~ `506. Mas 3 al Mas 1/d. Comunidades afrodescendientes`,
+                                                                            TRUE ~ NA) )     
+   
+   bd_long_plus <- bd_long_plus %>% mutate( p506_gruposBenef_e = case_when( ano_menos_1==year ~ `506. Menos 3 al Menos 1/e. Otros estudiantes/ investigadores`,
+                                                                            ano_mas_1==year ~ `506. Mas 3 al Mas 1/e. Otros estudiantes/ investigadores`,
+                                                                            TRUE ~ NA) )       
+   
+   bd_long_plus <- bd_long_plus %>% mutate( p506_gruposBenef_f = case_when( ano_menos_1==year ~ `506. Menos 3 al Menos 1/f. Sólo a la institución en la que trabajó`,
+                                                                            ano_mas_1==year ~ `506. Mas 3 al Mas 1/f. Sólo a la institución en la que trabajó`,
+                                                                            TRUE ~ NA) )        
+   
+   bd_long_plus <- bd_long_plus %>% mutate( p506_gruposBenef_g = case_when( ano_menos_1==year ~ `506. Menos 3 al Menos 1/g. Sólo a su grupo de investigación`,
+                                                                            ano_mas_1==year ~ `506. Mas 3 al Mas 1/g. Sólo a su grupo de investigación`,
+                                                                            TRUE ~ NA) )        
+   
+   bd_long_plus <- bd_long_plus %>% mutate( p506_gruposBenef_h = case_when( ano_menos_1==year ~ `506. Menos 3 al Menos 1/h. Niños`,
+                                                                            ano_mas_1==year ~ `506. Mas 3 al Mas 1/h. Niños`,
+                                                                            TRUE ~ NA) )        
+   
+   bd_long_plus <- bd_long_plus %>% mutate( p506_gruposBenef_i = case_when( ano_menos_1==year ~ `506. Menos 3 al Menos 1/i. Comunidad LGBTIQ+`,
+                                                                            ano_mas_1==year ~ `506. Mas 3 al Mas 1/i. Comunidad LGBTIQ+`,
+                                                                            TRUE ~ NA) )        
+   
+   bd_long_plus <- bd_long_plus %>% mutate( p506_gruposBenef_j = case_when( ano_menos_1==year ~ `506. Menos 3 al Menos 1/j. Comunidad personas con algún tipo de discapacidad`,
+                                                                            ano_mas_1==year ~ `506. Mas 3 al Mas 1/j. Comunidad personas con algún tipo de discapacidad`,
+                                                                            TRUE ~ NA) )        
+   
+   bd_long_plus <- bd_long_plus %>% mutate( p506_gruposBenef_k = case_when( ano_menos_1==year ~ `506. Menos 3 al Menos 1/k. Personas con ingresos bajos`,
+                                                                            ano_mas_1==year ~ `506. Mas 3 al Mas 1/k. Personas con ingresos bajos`,
+                                                                            TRUE ~ NA) )        
+   
+   bd_long_plus <- bd_long_plus %>% mutate( p506_gruposBenef_l = case_when( ano_menos_1==year ~ `506. Menos 3 al Menos 1/l. Salud pública`,
+                                                                            ano_mas_1==year ~ `506. Mas 3 al Mas 1/l. Salud pública`,
+                                                                            TRUE ~ NA) )         
+   
+   # Patologia especifica
+   
+   bd_long_plus <- bd_long_plus %>% mutate( p507_patologiaEsp = case_when( ano_menos_1==year ~ `507. Menos 3  al Menos 1`,
+                                                                           ano_mas_1==year ~ `507. Mas 3 al Mas 1`,
+                                                                           TRUE ~ "") )     
+   
+   bd_long_plus <- bd_long_plus %>% mutate( p508_patologiaCual = case_when( ano_menos_1==year ~ `508. Menos 3 al Menos 1`,
+                                                                            ano_mas_1==year ~ `508. Mas 3 al Mas 1`,
+                                                                            TRUE ~ "") )        
+   
+   
+   bd_long_plus <- bd_long_plus %>% mutate( p508_patologiaOtro = case_when( ano_menos_1==year ~ `508. Menos 3 al Menos 1_Cuál...546`,
+                                                                            ano_mas_1==year ~ `508. Mas 3 al Mas 1_Cuál...550`,
+                                                                            TRUE ~ "") )        
+   
+   
+   # Seccion  6 y 7 =================================================================
+   
+   
+   bd_long_plus <- bd_long_plus %>% mutate( p601 = `601. Cuál de las siguientes líneas temáticas en salud es la que más se aproxima a su campo de investigación del proyecto de referencia:**`,
+                                            p601otra = `601. ¿Cuál otra línea temática?**`,
+                                            p701 = `701. Agradecemos que haya atendido a esta encuesta. ¿Quiere hacer alguna observación o dar su opinión sobre esta encuesta?**`,
+                                            p702 = `702. Por favor escríbalas a continuación:**`
+   )
+   
+   # Productos, procesos o servicios
+   bd_long_plus <- bd_long_plus %>% mutate( p602_nuevosprod = case_when( ano_menos_1==year ~ `602. Menos 3 al Menos 1`,
+                                                                         ano_mas_1==year ~ `602. Mas 3 al Mas 1`,
+                                                                         TRUE ~ NA) )       
+   bd_long_plus <- bd_long_plus %>% mutate( p602_nuevosprod_cual = case_when( ano_menos_1==year ~ `602. Menos 3 al Menos 1_Cuál`,
+                                                                              ano_mas_1==year ~ `602. Mas 3 al Mas 1_Cuál`,
+                                                                              TRUE ~ NA) )       
+   
+   bd_long_plus <- bd_long_plus %>% mutate( p603_validaprod = case_when( ano_menos_1==year ~ `603. Menos 3 al Menos 1`,
+                                                                         ano_mas_1==year ~ `603. Mas 3 al Mas 1`,
+                                                                         TRUE ~ NA) )       
+   bd_long_plus <- bd_long_plus %>% mutate( p603_validaprod_cual = case_when( ano_menos_1==year ~ `603. Menos 3 al Menos 1_Cuál`,
+                                                                              ano_mas_1==year ~ `603. Mas 3 al Mas 1_Cuál`,
+                                                                              TRUE ~ NA) )     
+   
+   bd_long_plus <- bd_long_plus %>% mutate( p604_mercadoprod = case_when( ano_menos_1==year ~ `604. Menos 3 al Menos 1`,
+                                                                          ano_mas_1==year ~ `604. Mas 3 al Mas 1`,
+                                                                          TRUE ~ NA) )       
+   bd_long_plus <- bd_long_plus %>% mutate( p604_mercadoprod_cual = case_when( ano_menos_1==year ~ `604. Menos 3 al Menos 1_Cuál`,
+                                                                               ano_mas_1==year ~ `604. Mas 3 al Mas 1_Cuál`,
+                                                                               TRUE ~ NA) )     
+   
+   # Contibución a comunidades
+   
+   bd_long_plus <- bd_long_plus %>% mutate( p605_contricom_a = case_when( ano_menos_1==year ~ `605. Menos 3 al Menos 1/a. Mejorar el acceso efectivo a los servicios (tiempos de espera, acceso real a tecnologías sanitarias)`,
+                                                                          ano_mas_1==year ~ `605. Mas 3 al Mas 1/a. Mejorar el acceso efectivo a los servicios (tiempos de espera, acceso real a tecnologías sanitarias)`,
+                                                                          TRUE ~ NA) )     
+   bd_long_plus <- bd_long_plus %>% mutate( p605_contricom_b = case_when( ano_menos_1==year ~ `605. Menos 3 al Menos 1/b. Mejorar el acceso a la tecnología que afectan a la comunidad (tratamiento para enfermedades altamente prevalentes)`,
+                                                                          ano_mas_1==year ~ `605. Mas 3 al Mas 1/b. Mejorar el acceso a la tecnología que afectan a la comunidad (tratamiento para enfermedades altamente prevalentes)`,
+                                                                          TRUE ~ NA) )        
+   bd_long_plus <- bd_long_plus %>% mutate( p605_contricom_c = case_when( ano_menos_1==year ~ `605. Menos 3 al Menos 1/c. Representación de las comunidades en espacios de decisión de la política y administración en salud`,
+                                                                          ano_mas_1==year ~ `605. Mas 3 al Mas 1/c. Representación de las comunidades en espacios de decisión de la política y administración en salud`,
+                                                                          TRUE ~ NA) )    
+   bd_long_plus <- bd_long_plus %>% mutate( p605_contricom_d = case_when( ano_menos_1==year ~ `605. Menos 3 al Menos 1/d. Mejora de la calidad de vida del paciente (espiritualidad, cuidado paliativo, etc.)`,
+                                                                          ano_mas_1==year ~ `605. Mas 3 al Mas 1/d. Mejora de la calidad de vida del paciente (espiritualidad, cuidado paliativo, etc.)`,
+                                                                          TRUE ~ NA) )    
+   bd_long_plus <- bd_long_plus %>% mutate( p605_contricom_e = case_when( ano_menos_1==year ~ `605. Menos 3 al Menos 1/e. Reconocimiento de conocimientos ancestrales`,
+                                                                          ano_mas_1==year ~ `605. Mas 3 al Mas 1/e. Reconocimiento de conocimientos ancestrales`,
+                                                                          TRUE ~ NA) )     
+   bd_long_plus <- bd_long_plus %>% mutate( p605_contricom_f = case_when( ano_menos_1==year ~ `605. Menos 3 al Menos 1/f. Otra, ¿cuál?`,
+                                                                          ano_mas_1==year ~ `605. Mas 3 al Mas 1/f. Otra, ¿cuál?`,
+                                                                          TRUE ~ NA) )      
+   bd_long_plus <- bd_long_plus %>% mutate( p605_contricom_fcual = case_when( ano_menos_1==year ~ `605. Menos 3 al Menos 1_Cuál...584`,
+                                                                              ano_mas_1==year ~ `605. Mas 3 al Mas 1_Cuál...593`,
+                                                                              TRUE ~ NA) )         
+   
+   
+   # Just keep the relevant variables ============================================
+   # colnames(bd_long_plus)
+   
+   
+   myvars <- c("ID","status","year","G","p215","year_resources",
+               "años_estudio","feedback","apelo","ejecuto","control_puro","p205_a","p205_b","p205_c","p205_d","p205_e","p205_f","p205_g","p205_h","p205_i","p214","p217","P218","p301a","p301b","p301c","p301d","p301e","p301f","p302","p303","p303a","p304","p305a","p305b","p305c","p305d","p305e","p305f","p305g","p305h","p306","p307","p402","p403","p404a","p404b","p404c","p405a","p405b","p405c","p405d","p405e","p405f","p405g","p405h","p405i","p405j","p406a","p406b","p406c","p406d","p407a","p407b","p407c","p407d","p408","p409","p501_a","p501_b","p501_c","p501_d","p501_e","p501_f","p501_g","p501_h","p501_i","p502_ciudad","p503_depto","p504_investOtrasCiudades","p504_investOtrasCiudadesCual","p505_datosOtrasCiudades","p505_datosOtrasCiudadesCual","p506_gruposBenef_a","p506_gruposBenef_b","p506_gruposBenef_c","p506_gruposBenef_d","p506_gruposBenef_e","p506_gruposBenef_f","p506_gruposBenef_g","p506_gruposBenef_h","p506_gruposBenef_i","p506_gruposBenef_j","p506_gruposBenef_k","p506_gruposBenef_l","p507_patologiaEsp","p508_patologiaCual","p508_patologiaOtro","p602_nuevosprod","p602_nuevosprod_cual","p603_validaprod","p603_validaprod_cual","p605_contricom_a","p605_contricom_b","p605_contricom_c","p605_contricom_d","p605_contricom_e","p605_contricom_f","p605_contricom_fcual")
+   bd_long_final <- bd_long_plus[myvars]   
+   
+   
+   # Example Callaway Sant’Anna ============================================
+   library(did)
+   
+   # ejemplo con 403. En el periodo (ver encabezado de la columna) ¿Cuánto eran sus ingresos económicos mensuales? (a precios de ese entonces)
+   out <- att_gt(yname = "p403",
+                 tname = "year",
+                 idname = "ID",
+                 gname = "G",
+                 xformla = ~1,
+                 data = bd_long_final,
+                 allow_unbalanced_panel = TRUE,
+                 control_group="notyettreated"
+   )   
+   summary(out)
+   
+   es <- aggte(out, type = "dynamic", na.rm = TRUE)
+   es
+   
+   
