@@ -3,7 +3,7 @@
 # Objetivo: Análisis de impacto del Fondo para Investigación en Salud
 # Autor: Maria Camila Arias Álvarez - Econometría Consultores S.A.S.
 # Fecha de creación: 9/05/2024
-# última modificación: 5/06/2024
+# última modificación: 22/07/2024
 # 
 
 # Initial Setup ----------------------------------------------------------¿-
@@ -16,7 +16,7 @@ p_load(tidyverse, # tidy-data
        dplyr,
        tidyr)
 
-setwd("G:/.shortcut-targets-by-id/16saFOuJe6cZfw5VQ57BO3x5RmDTizAYF/MinCTeI - Evaluación FIS/04 Archivos de trabajo/María Camila Arias/FIS - Análisis")
+setwd("C:/Users/Maria.Arias/OneDrive - ECONOMETRIA CONSULTORES SA/Github Desktop/FIS/Procesamiento3")
 
 bd <- readxl::read_xlsx("data/base.xlsx", sheet="Entre 2011 y 2019")
 
@@ -70,7 +70,7 @@ bd <- readxl::read_xlsx("data/base.xlsx", sheet="Entre 2011 y 2019")
 
   
 # Balance table for control variables ------------------------------------------
-source("Procesamiento/tabla_balance.r")
+source("scripts/tabla_balance.r")
 
 # Extra data managing ----------------------------------------------------------
   bd_long_plus <- bd_long %>% select(year,status, everything()) %>%
@@ -511,7 +511,18 @@ source("Procesamiento/tabla_balance.r")
    
    
    myvars <- c("ID","status","year","G","p215","year_resources",
-               "años_estudio","feedback","apelo","ejecuto","control_puro","p205_a","p205_b","p205_c","p205_d","p205_e","p205_f","p205_g","p205_h","p205_i","p214","p217","P218","p301a","p301b","p301c","p301d","p301e","p301f","p302","p303","p303a","p304","p305a","p305b","p305c","p305d","p305e","p305f","p305g","p305h","p306","p307","p402","p403","p404a","p404b","p404c","p405a","p405b","p405c","p405d","p405e","p405f","p405g","p405h","p405i","p405j","p406a","p406b","p406c","p406d","p407a","p407b","p407c","p407d","p408","p409","p501_a","p501_b","p501_c","p501_d","p501_e","p501_f","p501_g","p501_h","p501_i","p502_ciudad","p503_depto","p504_investOtrasCiudades","p504_investOtrasCiudadesCual","p505_datosOtrasCiudades","p505_datosOtrasCiudadesCual","p506_gruposBenef_a","p506_gruposBenef_b","p506_gruposBenef_c","p506_gruposBenef_d","p506_gruposBenef_e","p506_gruposBenef_f","p506_gruposBenef_g","p506_gruposBenef_h","p506_gruposBenef_i","p506_gruposBenef_j","p506_gruposBenef_k","p506_gruposBenef_l","p507_patologiaEsp","p508_patologiaCual","p508_patologiaOtro","p602_nuevosprod","p602_nuevosprod_cual","p603_validaprod","p603_validaprod_cual","p605_contricom_a","p605_contricom_b","p605_contricom_c","p605_contricom_d","p605_contricom_e","p605_contricom_f","p605_contricom_fcual")
+               "años_estudio","feedback","apelo","ejecuto","control_puro",
+               "p205_a","p205_b","p205_c","p205_d","p205_e","p205_f","p205_g","p205_h","p205_i",
+               "p214","p217","P218","p301a","p301b","p301c","p301d","p301e","p301f","p302","p303","p303a","p304",
+               "p305a","p305b","p305c","p305d","p305e","p305f","p305g","p305h","p306","p307","p402","p403",
+               "p404a","p404b","p404c","p405a","p405b","p405c","p405d","p405e","p405f","p405g","p405h","p405i","p405j",
+               "p406a","p406b","p406c","p406d","p407a","p407b","p407c","p407d","p408","p409",
+               "p501_a","p501_b","p501_c","p501_d","p501_e","p501_f","p501_g","p501_h","p501_i","p502_ciudad","p503_depto",
+               "p504_investOtrasCiudades","p504_investOtrasCiudadesCual","p505_datosOtrasCiudades","p505_datosOtrasCiudadesCual",
+               "p506_gruposBenef_a","p506_gruposBenef_b","p506_gruposBenef_c","p506_gruposBenef_d","p506_gruposBenef_e","p506_gruposBenef_f","p506_gruposBenef_g","p506_gruposBenef_h","p506_gruposBenef_i","p506_gruposBenef_j","p506_gruposBenef_k","p506_gruposBenef_l",
+               "p507_patologiaEsp","p508_patologiaCual","p508_patologiaOtro","p602_nuevosprod","p602_nuevosprod_cual",
+               "p603_validaprod","p603_validaprod_cual",
+               "p605_contricom_a","p605_contricom_b","p605_contricom_c","p605_contricom_d","p605_contricom_e","p605_contricom_f","p605_contricom_fcual")
    bd_long_final <- bd_long_plus[myvars]   
    
    
