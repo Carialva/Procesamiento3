@@ -1,0 +1,341 @@
+# 
+# Proyecto: FIS
+# Objetivo: Análisis de impacto del Fondo para Investigación en Salud
+# Autor: Maria Camila Arias Álvarez - Econometría Consultores S.A.S.
+# Fecha de creación: 9/05/2024
+# última modificación: 5/06/2024
+# 
+
+# Initial Setup ----------------------------------------------------------¿-
+
+rm(list = ls())
+
+if(!require(pacman)) install.packages("pacman") ; require(pacman)
+p_load(tidyverse, # tidy-data
+       ggplot2,
+       dplyr,
+       tidyr)
+
+setwd("G:/.shortcut-targets-by-id/16saFOuJe6cZfw5VQ57BO3x5RmDTizAYF/MinCTeI - Evaluación FIS/04 Archivos de trabajo/María Camila Arias/FIS - Análisis")
+
+bd <- readxl::read_xlsx("data/base.xlsx", sheet="Entre 2011 y 2019")
+
+# Data managing ------------------------------------------------------------
+## Defining treatment status
+  # Si el investigador nunca recibió el FIS es un control puro
+  nrow(bd) #entre 2011 y 2019 tenemos 229 investigadores
+  table(bd$`202. ¿Alguna vez le fue otorgado el FIS?`) # tenemos 81 controles puros y 148 tratados
+  
+  # ¿En qué año fueron tratados?
+  table(bd$`202. ¿Alguna vez le fue otorgado el FIS?`,bd$`203. ¿En qué año le fue otorgado?`)
+  
+  # Creo un status para cada investigador para cada año del periodo que me interesa analizar
+  for (year in 2011:2019) {
+    status_var <- paste0("status", year)
+    bd <- bd %>% mutate(!!status_var := ifelse(`202. ¿Alguna vez le fue otorgado el FIS?`=="2. No",0,NA),
+                        !!status_var := ifelse(is.na(!!sym(status_var)) & `203. ¿En qué año le fue otorgado?` <= year,1,0))
+  }
+
+  ## Estimating number of years of studies according to the last achieved degree
+  bd <- bd %>%   mutate(años_estudio = case_when(
+    `106. ¿Cuál es el último nivel de estudios alcanzado por usted?` == "1. Universitario" ~ 16,
+    `106. ¿Cuál es el último nivel de estudios alcanzado por usted?` == "2. Especialización" ~ 17,
+    `106. ¿Cuál es el último nivel de estudios alcanzado por usted?` == "3. Maestría" ~ 18,
+    `106. ¿Cuál es el último nivel de estudios alcanzado por usted?` == "4. Doctorado" ~ 23,
+    `106. ¿Cuál es el último nivel de estudios alcanzado por usted?` == "5. Pos doctorado" ~ 24,
+    TRUE ~ NA_real_  
+  ))
+  
+  ## Coding variable whether they received feedback of the evaluation committee, they appeal to the verdict and they executed the project
+  bd <- bd %>% mutate(feedback = if_else(`212. ¿Recibió retroalimentación de parte de la convocatoria sobre los resultados de su evaluación?**` == "1. Sí",1,0),
+                      apelo = if_else(`213. ¿Apeló la calificación?**` == "1. Sí",1,0),
+                      ejecuto = if_else(`218. ¿Usted ejecutó el proyecto?**`=="1. Sí",1,0))
+  
+  # Transformar los datos a un formato largo
+  bd_long <- bd %>%
+    pivot_longer(cols = starts_with("status"),
+                 names_to = "year",
+                 names_prefix = "status",
+                 values_to = "status")
+  
+  # Convertir el año de carácter a numérico
+  bd_long$year <- as.numeric(bd_long$year)
+  
+  # Contar el número de 1 y 0 por año
+  status_counts <- bd_long %>%
+    group_by(year, status) %>%
+    summarise(count = n(), .groups = 'drop')
+  
+
+
+  
+# Balance table for control variables ------------------------------------------
+source("Procesamiento/tabla_balance.r")
+
+# Extra data managing ----------------------------------------------------------
+  bd_long_plus <- bd_long %>% select(year,status, everything()) %>%
+    select(-starttime,-endtime,-hoy,-logo,-"NIM...6",-"0...8",
+           -"Consentimiento informado",-"0...10",-"Nombres y apellidos",
+           -"_id",-"_uuid", -"_submission_time", -"_validation_status",
+           -"_notes", -"_status", -"_submitted_by", -"__version__", -"_tags",
+           -"_index")
+  
+  #Es control puro, los usos de los recursos y si recibió recursos de fuentes diferentes.
+  bd_long_plus <- bd_long_plus %>% mutate(control_puro = if_else(`202. ¿Alguna vez le fue otorgado el FIS?`=="2. No",1,0),
+                                          p205_a = if_else(`205. ¿Cuáles fueron los usos de estos recursos?**/a. Personal científico`==1,1,0),
+                                          p205_b = if_else(`205. ¿Cuáles fueron los usos de estos recursos?**/b. Viajes (seminarios y congresos)`==1,1,0),
+                                          p205_c = if_else(`205. ¿Cuáles fueron los usos de estos recursos?**/c. Vinculación jóvenes investigadores`==1,1,0),
+                                          p205_d = if_else(`205. ¿Cuáles fueron los usos de estos recursos?**/d. Equipos`==1,1,0),
+                                          p205_e = if_else(`205. ¿Cuáles fueron los usos de estos recursos?**/e. Eventos académicos`==1,1,0),
+                                          p205_f = if_else(`205. ¿Cuáles fueron los usos de estos recursos?**/f. Servicios técnicos`==1,1,0),
+                                          p205_g = if_else(`205. ¿Cuáles fueron los usos de estos recursos?**/g. Publicaciones y patentes`==1,1,0),
+                                          p205_h = if_else(`205. ¿Cuáles fueron los usos de estos recursos?**/h. Salidas de campo`==1,1,0),
+                                          p205_i = if_else(`205. ¿Cuáles fueron los usos de estos recursos?**/i. Compra materiales para la investigación`==1,1,0),
+                                          p214 = if_else(`214. ¿Recibió recursos de fuentes diferentes al FIS para financiar este proyecto o programa?**`=="2. No",0,1))
+  
+  
+  bd_long_plus <- bd_long %>% select(starts_with("215. ¿En qué año(s) recibio estos recursos?**"), NIM...4, year) %>%
+    pivot_longer(cols = starts_with("215. ¿En qué año(s) recibio estos recursos?**/"),
+                 names_to = "resource_year",
+                 values_to = "received") %>%
+    mutate(year_resources = as.numeric(str_extract(resource_year, "\\d{4}"))) %>%
+    filter(!is.na(year_resources)) %>%
+    select(-resource_year,-"215. ¿En qué año(s) recibio estos recursos?**") %>%
+    filter(received == 1) %>%
+    mutate(p215 = if_else(year == year_resources,1,0)) %>%
+    select(-received) %>%
+    right_join(bd_long_plus, by = c("NIM...4", "year"))
+  
+  bd_long_plus <- bd_long_plus %>% select(NIM...4,status,year,p215, everything())
+  
+  bd_long_plus <- bd_long_plus %>% mutate(p217 = case_when(`217b. Tipo de moneda:**`=="2. Dólares" ~ `217a. Aproximadamente, ¿de qué monto fue dicho financiamiento? (Si se recibió financiamiento en varios momentos y/o varias fuentes, hacer la suma y colocar el monto aproximado)**`*1856,
+                                                           `217b. Tipo de moneda:**`=="3. Euros" ~ `217a. Aproximadamente, ¿de qué monto fue dicho financiamiento? (Si se recibió financiamiento en varios momentos y/o varias fuentes, hacer la suma y colocar el monto aproximado)**`*2527,
+                                                           TRUE ~ `217a. Aproximadamente, ¿de qué monto fue dicho financiamiento? (Si se recibió financiamiento en varios momentos y/o varias fuentes, hacer la suma y colocar el monto aproximado)**`),
+                                          P218 = case_when(`218. ¿Usted ejecutó el proyecto?**`=="1. Sí" ~ 1,
+                                                           `218. ¿Usted ejecutó el proyecto?**`=="2. No, me retiré de la institución antes del inicio del proyecto"  ~ 0,
+                                                           `218. ¿Usted ejecutó el proyecto?**`=="3. No, otro ¿por qué?"  ~ 0,
+                                                            TRUE ~ NA_real_),
+                                          p301a = case_when(year==impact_ano_menos_1 & `301. Menos 3 al Menos 1/a. Artículos`==1~1,
+                                                           year==impact_ano_mas_1 & `301. Mas 3 al Mas 1/a. Artículos`==1 ~1,
+                                                           TRUE ~ NA_real_  ),
+                                          p301b = case_when(year==impact_ano_menos_1 & `301. Menos 3 al Menos 1/b. Patentes`==1~1,
+                                                            year==impact_ano_mas_1 & `301. Mas 3 al Mas 1/b. Patentes`==1 ~1,
+                                                            TRUE ~ NA_real_  ),
+                                          p301c = case_when(year==impact_ano_menos_1 & `301. Menos 3 al Menos 1/c. Prototipos`==1~1,
+                                                            year==impact_ano_mas_1 & `301. Mas 3 al Mas 1/c. Prototipos`==1 ~1,
+                                                            TRUE ~ NA_real_  ),
+                                          p301d = case_when(year==impact_ano_menos_1 & `301. Menos 3 al Menos 1/d. Más financiación`==1~1,
+                                                            year==impact_ano_mas_1 & `301. Mas 3 al Mas 1/d. Más financiación`==1 ~1,
+                                                            TRUE ~ NA_real_  ),
+                                          p301e = case_when(year==impact_ano_menos_1 & `301. Menos 3 al Menos 1/e. Consolidar alianzas estratégicas`==1~1,
+                                                            year==impact_ano_mas_1 & `301. Mas 3 al Mas 1/e. Consolidar alianzas estratégicas`==1 ~1,
+                                                            TRUE ~ NA_real_  ),
+                                          p301f = case_when(year==impact_ano_menos_1 & `301. Menos 3 al Menos 1/f. Ninguna de las anteriores`==1~1,
+                                                            year==impact_ano_mas_1 & `301. Mas 3 al Mas 1/f. Ninguna de las anteriores`==1 ~1,
+                                                            TRUE ~ NA_real_  ),
+                                          p302 = case_when(year==impact_ano_menos_1 & `302. Menos 3 al Menos 1...156`=="1. Sí" ~ 1,
+                                                           year==impact_ano_menos_1 & `302. Menos 3 al Menos 1...156`=="2. No" ~ 0,
+                                                           year==impact_ano_mas_1 & `302. Mas 3 al Mas 1...158`=="1. Sí" ~ 1,
+                                                           year==impact_ano_mas_1 & `302. Mas 3 al Mas 1...158`=="2. No" ~ 0,
+                                                           TRUE ~ NA_real_  ),
+                                          p303 = case_when(year==impact_ano_menos_1 & `303. Menos 3 al Menos 1...161`=="1. Sí" ~ 1,
+                                                           year==impact_ano_menos_1 & `303. Menos 3 al Menos 1...161`=="2. No" ~ 0,
+                                                           year==impact_ano_mas_1 & `303. Mas 3 al Mas 1...163`=="1. Sí" ~ 1,
+                                                           year==impact_ano_mas_1 & `303. Mas 3 al Mas 1...163`=="2. No" ~ 0,
+                                                           TRUE ~ NA_real_  ),
+                                          p303a = case_when(year==impact_ano_menos_1 & `303a. Menos 3 al Menos 1...166`=="1. Sí" ~ 1,
+                                                           year==impact_ano_menos_1 & `303a. Menos 3 al Menos 1...166`=="2. No" ~ 0,
+                                                           year==impact_ano_mas_1 & `303a. Mas 3 al Mas 1...168`=="1. Sí" ~ 1,
+                                                           year==impact_ano_mas_1 & `303a. Mas 3 al Mas 1...168`=="2. No" ~ 0,
+                                                           TRUE ~ NA_real_  ),
+                                          p304 = case_when(year==impact_ano_menos_1 & `304. Menos 3 al Menos 1`=="1. Sí" ~ 1,
+                                                           year==impact_ano_menos_1 & `304. Menos 3 al Menos 1`=="2. No" ~ 0,
+                                                           year==impact_ano_mas_1 & `304. Mas 3 al Mas 1`=="1. Sí" ~ 1,
+                                                           year==impact_ano_mas_1 & `304. Mas 3 al Mas 1`=="2. No" ~ 0,
+                                                           TRUE ~ NA_real_  ),
+                                          p305a = case_when(year==impact_ano_menos_1 & `305a. Menos 3 al Menos 1`=="1. Sí" ~ 1,
+                                                            year==impact_ano_menos_1 & `305a. Menos 3 al Menos 1`=="2. No" ~ 0,
+                                                            year==impact_ano_mas_1 & `305a. Mas 3 al Mas 1`=="1. Sí" ~ 1,
+                                                            year==impact_ano_mas_1 & `305a. Mas 3 al Mas 1`=="2. No" ~ 0,
+                                                            TRUE ~ NA_real_  ),
+                                          p305b = case_when(year==impact_ano_menos_1 & `305b. Menos 3 al Menos 1`=="1. Sí" ~ 1,
+                                                            year==impact_ano_menos_1 & `305b. Menos 3 al Menos 1`=="2. No" ~ 0,
+                                                            year==impact_ano_mas_1 & `305b. Mas 3 al Mas 1`=="1. Sí" ~ 1,
+                                                            year==impact_ano_mas_1 & `305b. Mas 3 al Mas 1`=="2. No" ~ 0,
+                                                            TRUE ~ NA_real_  ),
+                                          p305c = case_when(year==impact_ano_menos_1 & `305c. Menos 3 al Menos 1`=="1. Sí" ~ 1,
+                                                            year==impact_ano_menos_1 & `305c. Menos 3 al Menos 1`=="2. No" ~ 0,
+                                                            year==impact_ano_mas_1 & `305c. Mas 3 al Mas 1`=="1. Sí" ~ 1,
+                                                            year==impact_ano_mas_1 & `305c. Mas 3 al Mas 1`=="2. No" ~ 0,
+                                                            TRUE ~ NA_real_  ),
+                                          p305d = case_when(year==impact_ano_menos_1 & `305d. Menos 3 al Menos 1`=="1. Sí" ~ 1,
+                                                            year==impact_ano_menos_1 & `305d. Menos 3 al Menos 1`=="2. No" ~ 0,
+                                                            year==impact_ano_mas_1 & `305d. Mas 3 al Mas 1`=="1. Sí" ~ 1,
+                                                            year==impact_ano_mas_1 & `305d. Mas 3 al Mas 1`=="2. No" ~ 0,
+                                                            TRUE ~ NA_real_  ),
+                                          p305e = case_when(year==impact_ano_menos_1 & `305e. Menos 3 al Menos 1`=="1. Sí" ~ 1,
+                                                            year==impact_ano_menos_1 & `305e. Menos 3 al Menos 1`=="2. No" ~ 0,
+                                                            year==impact_ano_mas_1 & `305e. Mas 3 al Mas 1`=="1. Sí" ~ 1,
+                                                            year==impact_ano_mas_1 & `305e. Mas 3 al Mas 1`=="2. No" ~ 0,
+                                                            TRUE ~ NA_real_  ),
+                                          p305f = case_when(year==impact_ano_menos_1 & `305f. Menos 3 al Menos 1`=="1. Sí" ~ 1,
+                                                            year==impact_ano_menos_1 & `305f. Menos 3 al Menos 1`=="2. No" ~ 0,
+                                                            year==impact_ano_mas_1 & `305f. Mas 3 al Mas 1`=="1. Sí" ~ 1,
+                                                            year==impact_ano_mas_1 & `305f. Mas 3 al Mas 1`=="2. No" ~ 0,
+                                                            TRUE ~ NA_real_  ),
+                                          p305g = case_when(year==impact_ano_menos_1 & `305g. Menos 3 al Menos 1`=="1. Sí" ~ 1,
+                                                            year==impact_ano_menos_1 & `305g. Menos 3 al Menos 1`=="2. No" ~ 0,
+                                                            year==impact_ano_mas_1 & `305g. Mas 3 al Mas 1`=="1. Sí" ~ 1,
+                                                            year==impact_ano_mas_1 & `305g. Mas 3 al Mas 1`=="2. No" ~ 0,
+                                                            TRUE ~ NA_real_  ),
+                                          p305h = case_when(year==impact_ano_menos_1 & `305h. Menos 3 al Menos 1`=="1. Sí" ~ 1,
+                                                            year==impact_ano_menos_1 & `305h. Menos 3 al Menos 1`=="2. No" ~ 0,
+                                                            year==impact_ano_mas_1 & `305h. Mas 3 al Menos 1`=="1. Sí" ~ 1,
+                                                            year==impact_ano_mas_1 & `305h. Mas 3 al Menos 1`=="2. No" ~ 0,
+                                                            TRUE ~ NA_real_  ),
+                                          p306 = case_when(year==impact_ano_menos_1 & `306. Menos 3 al Menos 1` =="1. Sí" ~ 1,
+                                                            year==impact_ano_menos_1 & `306. Menos 3 al Menos 1` =="2. No" ~ 0,
+                                                            year==impact_ano_mas_1 & `306. Mas 3 al Mas 1` =="1. Sí" ~ 1,
+                                                            year==impact_ano_mas_1 & `306. Mas 3 al Mas 1` =="2. No" ~ 0,
+                                                            TRUE ~ NA_real_  ),
+                                          p307 = case_when(year==impact_ano_menos_1 & `308. Menos 3 al Menos 1...220` =="1. Sí" ~ 1,
+                                                           year==impact_ano_menos_1 & `308. Menos 3 al Menos 1...220` =="2. No" ~ 0,
+                                                           year==impact_ano_mas_1 & `308. Mas 3 al Mas 1...222` =="1. Sí" ~ 1,
+                                                           year==impact_ano_mas_1 & `308. Mas 3 al Mas 1...222` =="2. No" ~ 0,
+                                                           TRUE ~ NA_real_  ),
+                                          p402 = case_when(year==impact_ano_menos_1 & `402. Menos 1` =="1. Laboral a término fijo" ~ 1,
+                                                           year==impact_ano_menos_1 & `402. Menos 1` =="2. Laboral a término indefinido" ~ 2,
+                                                           year==impact_ano_menos_1 & `402. Menos 1` =="3. Prestación de servicios" ~ 3,
+                                                           year==impact_ano_menos_1 & `402. Menos 1` =="4. Independiente" ~ 4,
+                                                           year==impact_ano_mas_1 & `402. Mas 3` =="1. Laboral a término fijo" ~ 1,
+                                                           year==impact_ano_mas_1 & `402. Mas 3` =="2. Laboral a término indefinido" ~ 2,
+                                                           year==impact_ano_mas_1 & `402. Mas 3` =="3. Prestación de servicios" ~ 3,
+                                                           year==impact_ano_mas_1 & `402. Mas 3` =="4. Independiente" ~ 4,
+                                                           TRUE ~ NA_real_  ),
+                                          p403 = case_when(year==impact_ano_menos_1 ~ `403. Menos 3 al Menos 1`,
+                                                           year==impact_ano_mas_1 ~ `403. Mas 3 al Mas 1`,
+                                                           TRUE ~ NA_real_  ),
+                                          p404a = case_when(year==impact_ano_menos_1 & `404a. Menos 3 al Menos 1` =="1. Sí" ~ 1,
+                                                           year==impact_ano_menos_1 & `404a. Menos 3 al Menos 1` =="2. No" ~ 0,
+                                                           year==impact_ano_mas_1 & `404a. Mas 3 al Mas 1` =="1. Sí" ~ 1,
+                                                           year==impact_ano_mas_1 & `404a. Mas 3 al Mas 1` =="2. No" ~ 0,
+                                                           TRUE ~ NA_real_  ),
+                                          p404b = case_when(year==impact_ano_menos_1 & `404b. Menos 3 al Menos 1` =="1. Sí" ~ 1,
+                                                            year==impact_ano_menos_1 & `404b. Menos 3 al Menos 1` =="2. No" ~ 0,
+                                                            year==impact_ano_mas_1 & `404b. Mas 3 al Mas 1` =="1. Sí" ~ 1,
+                                                            year==impact_ano_mas_1 & `404b. Mas 3 al Mas 1` =="2. No" ~ 0,
+                                                            TRUE ~ NA_real_  ),
+                                          p404c = case_when(year==impact_ano_menos_1 & `404c. Menos 3 al Menos 1` =="1. Sí" ~ 1,
+                                                            year==impact_ano_menos_1 & `404c. Menos 3 al Menos 1` =="2. No" ~ 0,
+                                                            year==impact_ano_mas_1 & `404c. Mas 3 al Mas 1` =="1. Sí" ~ 1,
+                                                            year==impact_ano_mas_1 & `404c. Mas 3 al Mas 1` =="2. No" ~ 0,
+                                                            TRUE ~ NA_real_  ),
+                                          p405a = case_when(year==impact_ano_menos_1 & `405. Menos 3 al Menos 1/a. Su mismo grupo de investigaciones`==1~1,
+                                                            year==impact_ano_menos_1 & `405. Menos 3 al Menos 1/a. Su mismo grupo de investigaciones`==0~0,
+                                                            year==impact_ano_mas_1 & `405. Mas 3 al Mas 1/a. Su mismo grupo de investigaciones`==1 ~1,
+                                                            year==impact_ano_mas_1 & `405. Mas 3 al Mas 1/a. Su mismo grupo de investigaciones`==0 ~0,
+                                                            TRUE ~ NA_real_  ),
+                                          p405b = case_when(year==impact_ano_menos_1 & `405. Menos 3 al Menos 1/b. Otras instituciones nacionales (en el mismo departamento)`==1~1,
+                                                            year==impact_ano_menos_1 & `405. Menos 3 al Menos 1/b. Otras instituciones nacionales (en el mismo departamento)`==0~0,
+                                                            year==impact_ano_mas_1 & `405. Mas 3 al Mas 1/b. Otras instituciones nacionales (en el mismo departamento)`==1 ~1,
+                                                            year==impact_ano_mas_1 & `405. Mas 3 al Mas 1/b. Otras instituciones nacionales (en el mismo departamento)`==0 ~0,
+                                                            TRUE ~ NA_real_  ),
+                                          p405c = case_when(year==impact_ano_menos_1 & `405. Menos 3 al Menos 1/c. Otras instituciones nacionales (en otros departamentos)`==1~1,
+                                                            year==impact_ano_menos_1 & `405. Menos 3 al Menos 1/c. Otras instituciones nacionales (en otros departamentos)`==0~0,
+                                                            year==impact_ano_mas_1 & `405. Mas 3 al Mas 1/c. Otras instituciones nacionales (en otros departamentos)`==1 ~1,
+                                                            year==impact_ano_mas_1 & `405. Mas 3 al Mas 1/c. Otras instituciones nacionales (en otros departamentos)`==0 ~0,
+                                                            TRUE ~ NA_real_  ),
+                                          p405d = case_when(year==impact_ano_menos_1 & `405. Menos 3 al Menos 1/d. Otras instituciones internacionales`==1~1,
+                                                            year==impact_ano_menos_1 & `405. Menos 3 al Menos 1/d. Otras instituciones internacionales`==0~0,
+                                                            year==impact_ano_mas_1 & `405. Mas 3 al Mas 1/d. Otras instituciones internacionales`==1 ~1,
+                                                            year==impact_ano_mas_1 & `405. Mas 3 al Mas 1/d. Otras instituciones internacionales`==0 ~0,
+                                                            TRUE ~ NA_real_  ),
+                                          p405e = case_when(year==impact_ano_menos_1 & `405. Menos 3 al Menos 1/e. Sector empresarial`==1~1,
+                                                            year==impact_ano_menos_1 & `405. Menos 3 al Menos 1/e. Sector empresarial`==0~0,
+                                                            year==impact_ano_mas_1 & `405. Mas 3 al Mas 1/e. Sector empresarial`==1 ~1,
+                                                            year==impact_ano_mas_1 & `405. Mas 3 al Mas 1/e. Sector empresarial`==0 ~0,
+                                                            TRUE ~ NA_real_  ),
+                                          p405f = case_when(year==impact_ano_menos_1 & `405. Menos 3 al Menos 1/f. Otros grupos de investigación de su misma institución`==1~1,
+                                                            year==impact_ano_menos_1 & `405. Menos 3 al Menos 1/f. Otros grupos de investigación de su misma institución`==0~0,
+                                                            year==impact_ano_mas_1 & `405. Mas 3 al Mas 1/f. Otros grupos de investigación de su misma institución`==1 ~1,
+                                                            year==impact_ano_mas_1 & `405. Mas 3 al Mas 1/f. Otros grupos de investigación de su misma institución`==0 ~0,
+                                                            TRUE ~ NA_real_  ),
+                                          p405g = case_when(year==impact_ano_menos_1 & `405. Menos 3 al Menos 1/g. ONG`==1~1,
+                                                            year==impact_ano_menos_1 & `405. Menos 3 al Menos 1/g. ONG`==0~0,
+                                                            year==impact_ano_mas_1 & `405. Mas 3 al Mas 1/g. ONG`==1 ~1,
+                                                            year==impact_ano_mas_1 & `405. Mas 3 al Mas 1/g. ONG`==0 ~0,
+                                                            TRUE ~ NA_real_  ),
+                                          p405h = case_when(year==impact_ano_menos_1 & `405. Menos 3 al Menos 1/h. Entidades del sector salud`==1~1,
+                                                            year==impact_ano_menos_1 & `405. Menos 3 al Menos 1/h. Entidades del sector salud`==0~0,
+                                                            year==impact_ano_mas_1 & `405. Mas 3 al Mas 1/h. Entidades del sector salud`==1 ~1,
+                                                            year==impact_ano_mas_1 & `405. Mas 3 al Mas 1/h. Entidades del sector salud`==0 ~0,
+                                                            TRUE ~ NA_real_  ),
+                                          p405i = case_when(year==impact_ano_menos_1 & `405. Menos 3 al Menos 1/i. Asociación de pacientes`==1~1,
+                                                            year==impact_ano_menos_1 & `405. Menos 3 al Menos 1/i. Asociación de pacientes`==0~0,
+                                                            year==impact_ano_mas_1 & `405. Mas 3 al Mas 1/i. Asociación de pacientes`==1 ~1,
+                                                            year==impact_ano_mas_1 & `405. Mas 3 al Mas 1/i. Asociación de pacientes`==0 ~0,
+                                                            TRUE ~ NA_real_  ),
+                                          p405j = case_when(year==impact_ano_menos_1 & `405. Menos 3 al Menos 1/j. Asociación de cuidadores`==1~1,
+                                                            year==impact_ano_menos_1 & `405. Menos 3 al Menos 1/j. Asociación de cuidadores`==0~0,
+                                                            year==impact_ano_mas_1 & `405. Mas 3 al Mas 1/j. Asociación de cuidadores`==1 ~1,
+                                                            year==impact_ano_mas_1 & `405. Mas 3 al Mas 1/j. Asociación de cuidadores`==0 ~0,
+                                                            TRUE ~ NA_real_  ),
+                                          p406a = case_when(year==impact_ano_menos_1 & `406a. Menos 1` =="1. Sí" ~ 1,
+                                                            year==impact_ano_menos_1 & `406a. Menos 1` =="2. No" ~ 0,
+                                                            year==impact_ano_mas_1 & `406a. Mas 3` =="1. Sí" ~ 1,
+                                                            year==impact_ano_mas_1 & `406a. Mas 3` =="2. No" ~ 0,
+                                                            TRUE ~ NA_real_  ),
+                                          p406b = case_when(year==impact_ano_menos_1 & `406b. Menos 1` =="1. Sí" ~ 1,
+                                                            year==impact_ano_menos_1 & `406b. Menos 1` =="2. No" ~ 0,
+                                                            year==impact_ano_mas_1 & `406b. Mas 3` =="1. Sí" ~ 1,
+                                                            year==impact_ano_mas_1 & `406b. Mas 3` =="2. No" ~ 0,
+                                                            TRUE ~ NA_real_  ),
+                                          p406c = case_when(year==impact_ano_menos_1 & `406c. Menos 1` =="1. Sí" ~ 1,
+                                                            year==impact_ano_menos_1 & `406c. Menos 1` =="2. No" ~ 0,
+                                                            year==impact_ano_mas_1 & `406c. Mas 3` =="1. Sí" ~ 1,
+                                                            year==impact_ano_mas_1 & `406c. Mas 3` =="2. No" ~ 0,
+                                                            TRUE ~ NA_real_  ),
+                                          p406d = case_when(year==impact_ano_menos_1 & `406d. Menos 1` =="1. Sí" ~ 1,
+                                                            year==impact_ano_menos_1 & `406d. Menos 1` =="2. No" ~ 0,
+                                                            year==impact_ano_mas_1 & `406d. Mas 3` =="1. Sí" ~ 1,
+                                                            year==impact_ano_mas_1 & `406d. Mas 3` =="2. No" ~ 0,
+                                                            TRUE ~ NA_real_  ),
+                                          p407a = case_when(year==impact_ano_menos_1 & `407a. Menos 1...315` =="1. Sí" ~ 1,
+                                                            year==impact_ano_menos_1 & `407a. Menos 1...315` =="2. No" ~ 0,
+                                                            year==impact_ano_mas_1 & `407a. Mas 3...318` =="1. Sí" ~ 1,
+                                                            year==impact_ano_mas_1 & `407a. Mas 3...318` =="2. No" ~ 0,
+                                                            TRUE ~ NA_real_  ),
+                                          p407b = case_when(year==impact_ano_menos_1 & `407b. Menos 1` =="1. Sí" ~ 1,
+                                                            year==impact_ano_menos_1 & `407b. Menos 1` =="2. No" ~ 0,
+                                                            year==impact_ano_mas_1 & `407b. Mas 3` =="1. Sí" ~ 1,
+                                                            year==impact_ano_mas_1 & `407b. Mas 3` =="2. No" ~ 0,
+                                                            TRUE ~ NA_real_  ),
+                                          p407c = case_when(year==impact_ano_menos_1 & `407c. Menos 1` =="1. Sí" ~ 1,
+                                                            year==impact_ano_menos_1 & `407c. Menos 1` =="2. No" ~ 0,
+                                                            year==impact_ano_mas_1 & `407c. Mas 3` =="1. Sí" ~ 1,
+                                                            year==impact_ano_mas_1 & `407c. Mas 3` =="2. No" ~ 0,
+                                                            TRUE ~ NA_real_  ),
+                                          p407d = case_when(year==impact_ano_menos_1 & `407d. Menos 1` =="1. Sí" ~ 1,
+                                                            year==impact_ano_menos_1 & `407d. Menos 1` =="2. No" ~ 0,
+                                                            year==impact_ano_mas_1 & `407d. Mas 3` =="1. Sí" ~ 1,
+                                                            year==impact_ano_mas_1 & `407d. Mas 3` =="2. No" ~ 0,
+                                                            TRUE ~ NA_real_  ),
+                                          p408 = case_when(year==impact_ano_menos_1 & `408. Menos 3 al Menos 1...352` =="1. Sí" ~ 1,
+                                                            year==impact_ano_menos_1 & `408. Menos 3 al Menos 1...352` =="2. No" ~ 0,
+                                                            year==impact_ano_mas_1 & `408. Mas 3 al Mas 1` =="1. Sí" ~ 1,
+                                                            year==impact_ano_mas_1 & `408. Mas 3 al Mas 1` =="2. No" ~ 0,
+                                                            TRUE ~ NA_real_  ),
+                                          p409 = case_when(year==impact_ano_menos_1 & `409. Menos 3 al Menos 1...359` =="1. Investigador Asociado" ~ 1,
+                                                           year==impact_ano_menos_1 & `409. Menos 3 al Menos 1...359` =="3. Investigador Junior" ~ 3,
+                                                           year==impact_ano_menos_1 & `409. Menos 3 al Menos 1...359` =="4. Investigador Senior" ~ 4,
+                                                           year==impact_ano_menos_1 & `409. Menos 3 al Menos 1...359` =="5. NS/NR" ~ 5,
+                                                           year==impact_ano_mas_1 & `409. Mas 3 al Mas 1...360` =="1. Investigador Asociado" ~ 1,
+                                                           year==impact_ano_mas_1 & `409. Mas 3 al Mas 1...360` =="3. Investigador Junior" ~ 3,
+                                                           year==impact_ano_mas_1 & `409. Mas 3 al Mas 1...360` =="4. Investigador Senior" ~ 4,
+                                                           year==impact_ano_mas_1 & `409. Mas 3 al Mas 1...360` =="5. NS/NR" ~ 5,
+                                                           TRUE ~ NA_real_  ),
+                                          )
+                                          
+  
+   view(bd_long_plus%>%select(NIM...4,year,starts_with("impact_ano_"),`301. Menos 3 al Menos 1/b. Patentes`,`301. Mas 3 al Mas 1/b. Patentes`,p301a,p301b)%>%filter(NIM...4=="ee.kobotoolbox.org:O396WnvLThVwcUj7"))
+  
