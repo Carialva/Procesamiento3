@@ -16,7 +16,13 @@ p_load(tidyverse, # tidy-data
        dplyr,
        tidyr)
 
-setwd("C:/Users/Maria.Arias/OneDrive - ECONOMETRIA CONSULTORES SA/Github Desktop/FIS/Procesamiento3")
+if ( Sys.getenv("USERNAME")=="paul.rodriguez") {
+  setwd("G:/.shortcut-targets-by-id/16saFOuJe6cZfw5VQ57BO3x5RmDTizAYF/MinCTeI - Evaluación FIS/04 Archivos de trabajo/Paul Rodriguez/FIS - Análisis")
+} else {
+  setwd("C:/Users/Maria.Arias/OneDrive - ECONOMETRIA CONSULTORES SA/Github Desktop/FIS/Procesamiento3")
+}
+
+
 
 bd <- readxl::read_xlsx("data/base.xlsx", sheet="Entre 2011 y 2019")
 
@@ -24,6 +30,7 @@ bd <- readxl::read_xlsx("data/base.xlsx", sheet="Entre 2011 y 2019")
 ## Defining treatment status
   # Si el investigador nunca recibió el FIS es un control puro
   nrow(bd) #entre 2011 y 2019 tenemos 229 investigadores
+  bd <- tibble::rowid_to_column(bd, "ID") # Creamos ID
   table(bd$`202. ¿Alguna vez le fue otorgado el FIS?`) # tenemos 81 controles puros y 148 tratados
   
   # ¿En qué año fueron tratados?
@@ -81,7 +88,13 @@ source("scripts/tabla_balance.r")
            -"_index")
   
   #Es control puro, los usos de los recursos y si recibió recursos de fuentes diferentes.
+  
+  bd_long_plus <- bd_long_plus %>% mutate(impact_ano_mas_1 = impact_ano_mas_1-1) # So we don't have a "gap" for the CS exercise
+  
+  
+  #Es control puro, los usos de los recursos y si recibió recursos de fuentes diferentes.
   bd_long_plus <- bd_long_plus %>% mutate(control_puro = if_else(`202. ¿Alguna vez le fue otorgado el FIS?`=="2. No",1,0),
+                                          G      = if_else(is.na(`203. ¿En qué año le fue otorgado?`),0,`203. ¿En qué año le fue otorgado?`),
                                           p205_a = if_else(`205. ¿Cuáles fueron los usos de estos recursos?**/a. Personal científico`==1,1,0),
                                           p205_b = if_else(`205. ¿Cuáles fueron los usos de estos recursos?**/b. Viajes (seminarios y congresos)`==1,1,0),
                                           p205_c = if_else(`205. ¿Cuáles fueron los usos de estos recursos?**/c. Vinculación jóvenes investigadores`==1,1,0),
@@ -530,7 +543,7 @@ source("scripts/tabla_balance.r")
    library(did)
    
    # ejemplo con 403. En el periodo (ver encabezado de la columna) ¿Cuánto eran sus ingresos económicos mensuales? (a precios de ese entonces)
-   out <- att_gt(yname = "p403",
+   out <- att_gt(yname = "p307",
                  tname = "year",
                  idname = "ID",
                  gname = "G",
@@ -543,5 +556,20 @@ source("scripts/tabla_balance.r")
    
    es <- aggte(out, type = "dynamic", na.rm = TRUE)
    es
+   
+   # COMENTARIOS
+    # Deflectar plata
+    # Para variables dummy como la p301a o p304 no hay estimación
+   
+   # HALLAZGOS
+    # La probabilidad de financiar algún prodcto o patente aumentó en 32.4 pp.
+    # La probabilidad de mejora salarial aumentó en 33.9 pp.
+    # La probabilidad de publicar más artículos aumentó en 44.2 pp.
+    # La probabilidad de publicar manuales aumentó en 18.2 pp.
+    # La probabilidad de publicar libros aumentó en 21.1 pp.
+    # La probabilidad de ser referenciado en documentos de política pública en salud aumentó en 15.3 pp.
+    # La probabilidad de cambiar de posición laboral aumentó en 14.8 pp., pero no cambian de empleo
+    # La probabilidad de desarrollar una patente o producto de innovación médica aumentó en 13.1 pp
+   
    
    
