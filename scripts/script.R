@@ -571,5 +571,10 @@ source("scripts/tabla_balance.r")
     # La probabilidad de cambiar de posición laboral aumentó en 14.8 pp., pero no cambian de empleo
     # La probabilidad de desarrollar una patente o producto de innovación médica aumentó en 13.1 pp
    
+   # Tareas:
+      # 1. Cruzar temática de encuesta con DB (No hubo ninguna adicional)
+      # 2. Gráfica de outcome interesante para pulir gráfica
+      # 3. Armar tabla de outcomes y comaprtir avances
+   
    
    
