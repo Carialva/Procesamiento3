@@ -95,6 +95,7 @@ source("scripts/tabla_balance.r")
   #Es control puro, los usos de los recursos y si recibió recursos de fuentes diferentes.
   bd_long_plus <- bd_long_plus %>% mutate(control_puro = if_else(`202. ¿Alguna vez le fue otorgado el FIS?`=="2. No",1,0),
                                           G      = if_else(is.na(`203. ¿En qué año le fue otorgado?`),0,`203. ¿En qué año le fue otorgado?`),
+                                          p201 = `201. ¿En qué año se postuló por primera vez al FIS?`,
                                           p205_a = if_else(`205. ¿Cuáles fueron los usos de estos recursos?**/a. Personal científico`==1,1,0),
                                           p205_b = if_else(`205. ¿Cuáles fueron los usos de estos recursos?**/b. Viajes (seminarios y congresos)`==1,1,0),
                                           p205_c = if_else(`205. ¿Cuáles fueron los usos de estos recursos?**/c. Vinculación jóvenes investigadores`==1,1,0),
@@ -350,7 +351,7 @@ source("scripts/tabla_balance.r")
                                           )
                                           
   
-   view(bd_long_plus%>%select(NIM...4,year,starts_with("impact_ano_"),`301. Menos 3 al Menos 1/b. Patentes`,`301. Mas 3 al Mas 1/b. Patentes`,p301a,p301b)%>%filter(NIM...4=="ee.kobotoolbox.org:O396WnvLThVwcUj7"))
+   #view(bd_long_plus%>%select(NIM...4,year,starts_with("impact_ano_"),`301. Menos 3 al Menos 1/b. Patentes`,`301. Mas 3 al Mas 1/b. Patentes`,p301a,p301b)%>%filter(NIM...4=="ee.kobotoolbox.org:O396WnvLThVwcUj7"))
   
    
    # Seccion   5 =================================================================
@@ -521,9 +522,9 @@ source("scripts/tabla_balance.r")
    
    # Just keep the relevant variables ============================================
    # colnames(bd_long_plus)
+
    
-   
-   myvars <- c("ID","status","year","G","p215","year_resources",
+   myvars <- c("ID","status","year","G","p201","p215","year_resources",
                "años_estudio","feedback","apelo","ejecuto","control_puro",
                "p205_a","p205_b","p205_c","p205_d","p205_e","p205_f","p205_g","p205_h","p205_i",
                "p214","p217","P218","p301a","p301b","p301c","p301d","p301e","p301f","p302","p303","p303a","p304",
@@ -536,14 +537,13 @@ source("scripts/tabla_balance.r")
                "p507_patologiaEsp","p508_patologiaCual","p508_patologiaOtro","p602_nuevosprod","p602_nuevosprod_cual",
                "p603_validaprod","p603_validaprod_cual",
                "p605_contricom_a","p605_contricom_b","p605_contricom_c","p605_contricom_d","p605_contricom_e","p605_contricom_f","p605_contricom_fcual")
-   bd_long_final <- bd_long_plus[myvars]   
-   
+   bd_long_final <- bd_long_plus[myvars]  
    
    # Example Callaway Sant’Anna ============================================
    library(did)
    
-   # ejemplo con 403. En el periodo (ver encabezado de la columna) ¿Cuánto eran sus ingresos económicos mensuales? (a precios de ese entonces)
-   out <- att_gt(yname = "p307",
+   # Acá se estima el efecto
+   out <- att_gt(yname = "p205_g",
                  tname = "year",
                  idname = "ID",
                  gname = "G",
@@ -554,8 +554,52 @@ source("scripts/tabla_balance.r")
    )   
    summary(out)
    
-   es <- aggte(out, type = "dynamic", na.rm = TRUE)
+   es <- aggdid(out, type = "dynamic", na.rm = TRUE)
    es
+   # Acá termina para estimar el efecto
+
+   # Preparo una base para graficar
+   bd_graficas <- bd_long_final %>% filter((control_puro==1 & (year==p201 | year == p201-1))|
+                                             (control_puro==0 & (year==G | year == G-1) & G<2019)) %>%
+     mutate(año = if_else(year==G | year == p201,0,-1)) %>%
+     select(ID, control_puro, año, everything())
+   bd_graficas <- bd_graficas %>% mutate(tratamiento = if_else(control_puro == 1, 0, 1))
+   bd_graficas <- bd_graficas %>% mutate(tratamiento=factor(tratamiento, levels = c(0, 1), labels = c("control", "tratamiento")),
+                                             año = factor(año, levels = c(0, -1), labels = c("Pre", "Post")))
+   
+   
+   # Grafico tendencias promedio
+   crear_grafica <- function(data, variable, titulo_base, output_path) {
+     # Crear un símbolo para la variable de interés
+     variable_sym <- rlang::sym(variable)
+     
+     # Calcular los resúmenes por año y TyC
+     summary_data <- data %>%
+       group_by(año, tratamiento) %>%
+       summarise(
+         mean = mean(!!variable_sym, na.rm = TRUE),
+         sd = sd(!!variable_sym, na.rm = TRUE),
+         n = n(),
+         se = sd / sqrt(n),
+         lower = mean - qt(1 - 0.05 / 2, n - 1) * se,
+         upper = mean + qt(1 - 0.05 / 2, n - 1) * se
+       ) %>%
+       ungroup()
+     
+     # Crear la gráfica
+     figura <- ggplot(summary_data, aes(x = año, y = mean, color = tratamiento, group = tratamiento)) +
+       geom_line() +
+       geom_point() +
+       geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.2) +
+       labs(title = titulo_base, x = "Año", y = "Promedio") +
+       theme_minimal()
+     
+     ggsave(filename = output_path, plot = figura, device = "png")
+     figura
+     
+   }
+   
+   crear_grafica(bd_graficas, "p307", "P307","outputs/tendencia_p307.png")
    
    # COMENTARIOS
     # Deflectar plata
