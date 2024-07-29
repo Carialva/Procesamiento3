@@ -125,10 +125,13 @@ source("scripts/tabla_balance.r")
   bd_long_plus <- bd_long_plus %>% mutate(p217 = case_when(`217b. Tipo de moneda:**`=="2. Dólares" ~ `217a. Aproximadamente, ¿de qué monto fue dicho financiamiento? (Si se recibió financiamiento en varios momentos y/o varias fuentes, hacer la suma y colocar el monto aproximado)**`*1856,
                                                            `217b. Tipo de moneda:**`=="3. Euros" ~ `217a. Aproximadamente, ¿de qué monto fue dicho financiamiento? (Si se recibió financiamiento en varios momentos y/o varias fuentes, hacer la suma y colocar el monto aproximado)**`*2527,
                                                            TRUE ~ `217a. Aproximadamente, ¿de qué monto fue dicho financiamiento? (Si se recibió financiamiento en varios momentos y/o varias fuentes, hacer la suma y colocar el monto aproximado)**`),
-                                          P218 = case_when(`218. ¿Usted ejecutó el proyecto?**`=="1. Sí" ~ 1,
+                                          p218 = case_when(`218. ¿Usted ejecutó el proyecto?**`=="1. Sí" ~ 1,
                                                            `218. ¿Usted ejecutó el proyecto?**`=="2. No, me retiré de la institución antes del inicio del proyecto"  ~ 0,
                                                            `218. ¿Usted ejecutó el proyecto?**`=="3. No, otro ¿por qué?"  ~ 0,
                                                             TRUE ~ NA_real_),
+                                          p220 = case_when(year==impact_ano_menos_1 ~ `220. Menos 3 al Menos 1...121`,
+                                                           year==impact_ano_mas_1 ~ `220. Más 3 al Más 1...123`,
+                                                           TRUE ~ NA_real_),
                                           p301a = case_when(year==impact_ano_menos_1 & `301. Menos 3 al Menos 1/a. Artículos`==1~1,
                                                            year==impact_ano_mas_1 & `301. Mas 3 al Mas 1/a. Artículos`==1 ~1,
                                                            TRUE ~ NA_real_  ),
@@ -527,7 +530,7 @@ source("scripts/tabla_balance.r")
    myvars <- c("ID","status","year","G","p201","p215","year_resources",
                "años_estudio","feedback","apelo","ejecuto","control_puro",
                "p205_a","p205_b","p205_c","p205_d","p205_e","p205_f","p205_g","p205_h","p205_i",
-               "p214","p217","P218","p301a","p301b","p301c","p301d","p301e","p301f","p302","p303","p303a","p304",
+               "p214","p217","p218","p220","p301a","p301b","p301c","p301d","p301e","p301f","p302","p303","p303a","p304",
                "p305a","p305b","p305c","p305d","p305e","p305f","p305g","p305h","p306","p307","p402","p403",
                "p404a","p404b","p404c","p405a","p405b","p405c","p405d","p405e","p405f","p405g","p405h","p405i","p405j",
                "p406a","p406b","p406c","p406d","p407a","p407b","p407c","p407d","p408","p409",
@@ -543,7 +546,7 @@ source("scripts/tabla_balance.r")
    library(did)
    
    # Acá se estima el efecto
-   out <- att_gt(yname = "p205_g",
+   out <- att_gt(yname = "p305d",
                  tname = "year",
                  idname = "ID",
                  gname = "G",
@@ -554,7 +557,7 @@ source("scripts/tabla_balance.r")
    )   
    summary(out)
    
-   es <- aggdid(out, type = "dynamic", na.rm = TRUE)
+   es <- aggte(out, type = "dynamic", na.rm = TRUE)
    es
    # Acá termina para estimar el efecto
 
@@ -565,7 +568,7 @@ source("scripts/tabla_balance.r")
      select(ID, control_puro, año, everything())
    bd_graficas <- bd_graficas %>% mutate(tratamiento = if_else(control_puro == 1, 0, 1))
    bd_graficas <- bd_graficas %>% mutate(tratamiento=factor(tratamiento, levels = c(0, 1), labels = c("control", "tratamiento")),
-                                             año = factor(año, levels = c(0, -1), labels = c("Pre", "Post")))
+                                             año = factor(año, levels = c(-1, 0), labels = c("Pre", "Post")))
    
    
    # Grafico tendencias promedio
@@ -581,8 +584,8 @@ source("scripts/tabla_balance.r")
          sd = sd(!!variable_sym, na.rm = TRUE),
          n = n(),
          se = sd / sqrt(n),
-         lower = mean - qt(1 - 0.05 / 2, n - 1) * se,
-         upper = mean + qt(1 - 0.05 / 2, n - 1) * se
+         lower = mean - qt(1 - 0.1 / 2, n - 1) * se,
+         upper = mean + qt(1 - 0.1 / 2, n - 1) * se
        ) %>%
        ungroup()
      
@@ -599,7 +602,16 @@ source("scripts/tabla_balance.r")
      
    }
    
-   crear_grafica(bd_graficas, "p307", "P307","outputs/tendencia_p307.png")
+   #crear_grafica(bd_graficas, "p307", "P307","outputs/tendencia_p307.png")
+   crear_grafica(bd_graficas, "p403", "Ingresos","outputs/tendencia_ingresos.png")
+   crear_grafica(bd_graficas, "p305f", "Referenciados en política pública en salud","outputs/tendencia_ref_pol_publica.png")
+   crear_grafica(bd_graficas, "p305a", "Logró mejora salarial","outputs/tendencia_mejora_salarial.png")
+   crear_grafica(bd_graficas, "p305b", "Logró publicar artículos","outputs/tendencia_publicó_artículos.png")
+   crear_grafica(bd_graficas, "p305c", "Logró publicar manuales","outputs/tendencia_publicó_manuales.png")
+   crear_grafica(bd_graficas, "p305d", "Logró publicar libros","outputs/tendencia_publicó_libros.png")
+   crear_grafica(bd_graficas, "p305g", "Logró cambiar posición laboral","outputs/tendencia_cambió_posición_lab.png")
+   crear_grafica(bd_graficas, "p305h", "Logró cambiar de empleo","outputs/tendencia_cambió_empleo.png")
+   crear_grafica(bd_graficas, "p220", "Proyectos en que usó evidencia experimental","outputs/tendencia_evidencia_experimental.png")
    
    # COMENTARIOS
     # Deflectar plata
