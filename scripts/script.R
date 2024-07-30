@@ -558,7 +558,7 @@ source("scripts/tabla_balance.r")
    library(did)
    
    # Acá se estima el efecto
-   out <- att_gt(yname = "p301f",
+   out <- att_gt(yname = "p301a",
                  tname = "year",
                  idname = "ID",
                  gname = "G",
@@ -571,6 +571,12 @@ source("scripts/tabla_balance.r")
    
    es <- aggte(out, type = "dynamic", na.rm = TRUE)
    es
+   
+   
+   agg <- aggte(out,
+                type = "calendar",
+                na.rm = TRUE)
+   ggdid(agg)
    # Acá termina para estimar el efecto
 
    # Preparo una base para graficar
